@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"sync/atomic"
 )
 
 func (cfg *apiConfig) siteHitsMiddleware(next http.Handler) http.Handler {
@@ -20,6 +19,8 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(response))
 }
 
+// DEPRECIATED
+/*
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 	cfg.fileserverHits = atomic.Int32{}
 
@@ -28,3 +29,4 @@ func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 	response := fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())
 	w.Write([]byte(response))
 }
+*/
