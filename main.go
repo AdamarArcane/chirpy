@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"sync/atomic"
 )
@@ -23,9 +22,10 @@ func main() {
 
 	mux.Handle("/app/", cfg.siteHitsMiddleware(strippedHandler))
 	mux.Handle("/app/assets/logo.png", strippedHandler)
-	mux.HandleFunc("/healthz", handlerHealthz)
-	mux.HandleFunc("/metrics", cfg.handlerHits)
-	mux.HandleFunc("/reset", cfg.handlerReset)
+	mux.HandleFunc("GET /api/healthz", handlerHealthz)
+	mux.HandleFunc("GET /admin/metrics", cfg.handlerMetrics)
+	mux.HandleFunc("POST /admin/reset", cfg.handlerReset)
+	mux.HandleFunc("POST /api/validate_chirp", handlerValidateChirp)
 
 	server.ListenAndServe()
 }
@@ -37,34 +37,3 @@ type apiConfig struct {
 }
 
 // Handler Functions
-
-func handlerHealthz(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
-}
-
-// Middleware
-
-func (cfg *apiConfig) siteHitsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits.Add(1)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (cfg *apiConfig) handlerHits(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	response := fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())
-	w.Write([]byte(response))
-}
-
-func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
-	cfg.fileserverHits = atomic.Int32{}
-
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	response := fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())
-	w.Write([]byte(response))
-}
