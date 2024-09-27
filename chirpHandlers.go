@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/adamararcane/chirpy/internal/auth"
 	"github.com/adamararcane/chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -25,6 +26,20 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	userJWT, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("User does not have correct prefix in auth header: %s", err)
+		WriteErrorResponse(w, 401, "Authorization header does not have correct prefix")
+		return
+	}
+
+	userUUID, err := auth.ValidateJWT(userJWT, cfg.JWT_SECRET)
+	if err != nil {
+		log.Printf("Error validating user token: %s", err)
+		WriteErrorResponse(w, 401, "JWT token failed to validate")
+		return
+	}
+
 	if len(params.Body) > 140 {
 		log.Printf("Chirp over 140 characters")
 		WriteErrorResponse(w, 400, "Chirp is too long")
@@ -33,7 +48,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	cleanedChirp := cleanChirp(params.Body)
 
-	newChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{Body: cleanedChirp, UserID: params.UserID})
+	newChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{Body: cleanedChirp, UserID: userUUID})
 	if err != nil {
 		log.Printf("Errror creating chirp: %s", err)
 		WriteErrorResponse(w, 500, "Error creating chirp")

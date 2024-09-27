@@ -23,6 +23,7 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	PLATFORM_TYPE := os.Getenv("PLATFORM")
+	JWTSecret := os.Getenv("JWT_SECRET")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Printf("Error opening db: %s", err)
@@ -35,6 +36,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		PLATFORM:       PLATFORM_TYPE,
+		JWT_SECRET:     JWTSecret,
 	}
 
 	fileServerHandler := http.FileServer(http.Dir("."))
@@ -49,6 +51,7 @@ func main() {
 	mux.HandleFunc("GET /api/chirps", cfg.handlerGetAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.handlerGetChirpByID)
 	mux.HandleFunc("POST /api/users", cfg.handlerCreateUser)
+	mux.HandleFunc("POST /api/login", cfg.handlerLoginUser)
 
 	server.ListenAndServe()
 }
@@ -59,6 +62,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	PLATFORM       string
+	JWT_SECRET     string
 }
 
 type User struct {
@@ -66,6 +70,14 @@ type User struct {
 	Created_at time.Time `json:"created_at"`
 	Updated_at time.Time `json:"updated_at"`
 	Email      string    `json:"email"`
+}
+
+type UserWithToken struct {
+	ID         uuid.UUID `json:"id"`
+	Created_at time.Time `json:"created_at"`
+	Updated_at time.Time `json:"updated_at"`
+	Email      string    `json:"email"`
+	Token      string    `json:"token"`
 }
 
 type ChirpResp struct {
