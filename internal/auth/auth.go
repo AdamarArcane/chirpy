@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -29,9 +31,9 @@ func CheckPasswordHash(password, hash string) error {
 	return nil
 }
 
-func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
+func MakeJWT(userID uuid.UUID, tokenSecret string) (string, error) {
 	timeNowUTC := time.Now().UTC()
-	expDur := (time.Second * expiresIn)
+	expDur := (time.Second * 3600)
 	expTime := timeNowUTC.Add(expDur)
 	subject := userID.String()
 
@@ -44,7 +46,7 @@ func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 
 	signedToken, err := token.SignedString([]byte(tokenSecret))
 	if err != nil {
-		log.Printf("Error sigining token: %s", err)
+		return "", err
 	}
 
 	return signedToken, nil
@@ -73,6 +75,17 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	}
 
 	return UUID, nil
+}
+
+func MakeRefreshToken() (string, error) {
+	bytes := make([]byte, 32)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", fmt.Errorf("error generating refresh token: %w", err)
+	}
+
+	rfToken := hex.EncodeToString(bytes)
+	return rfToken, nil
 }
 
 func GetBearerToken(headers http.Header) (string, error) {

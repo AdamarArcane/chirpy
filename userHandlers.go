@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/adamararcane/chirpy/internal/auth"
 	"github.com/adamararcane/chirpy/internal/database"
@@ -60,9 +59,8 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password           string `json:"password"`
-		Email              string `json:"email"`
-		Expires_in_seconds int    `json:"expires_in_seconds"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -72,10 +70,6 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error decoding parameters: %s", err)
 		WriteErrorResponse(w, 500, "Something went wrong")
 		return
-	}
-
-	if params.Expires_in_seconds == 0 {
-		params.Expires_in_seconds = 3600
 	}
 
 	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
@@ -92,14 +86,34 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, cfg.JWT_SECRET, time.Duration(params.Expires_in_seconds))
+	token, err := auth.MakeJWT(user.ID, cfg.JWT_SECRET)
+	if err != nil {
+		log.Printf("Error making JWT: %s", err)
+		WriteErrorResponse(w, 500, "Error making JWT")
+		return
+	}
+
+	rfToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		log.Printf("Error making refresh token: %s", err)
+		WriteErrorResponse(w, 500, "Error making refresh token")
+		return
+	}
+
+	rfTokenItem, err := cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{Token: rfToken, UserID: user.ID})
+	if err != nil {
+		log.Printf("Error creating refresh token DB Item: %s", err)
+		WriteErrorResponse(w, 500, "Error adding refresh token to DB")
+		return
+	}
 
 	response := UserWithToken{
-		ID:         user.ID,
-		Created_at: user.CreatedAt,
-		Updated_at: user.UpdatedAt,
-		Email:      user.Email,
-		Token:      token,
+		ID:            user.ID,
+		Created_at:    user.CreatedAt,
+		Updated_at:    user.UpdatedAt,
+		Email:         user.Email,
+		Token:         token,
+		Refresh_token: rfTokenItem.Token,
 	}
 
 	dat, err := json.Marshal(response)
