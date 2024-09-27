@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -50,6 +51,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		log.Printf("Error marshalling JSON: %s", err)
 		WriteErrorResponse(w, 500, "Something went wrong")
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -57,11 +59,12 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	w.Write(dat)
 }
 
-func (cfg *apiConfig) handlerGetAllChrips(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
 	allChirps, err := cfg.db.GetAllChirps(r.Context())
 	if err != nil {
 		log.Printf("Error getting all chirps: %s", err)
 		WriteErrorResponse(w, 500, "Error getting all chirps")
+		return
 	}
 
 	var allChirpsJSON []ChirpResp
@@ -80,6 +83,44 @@ func (cfg *apiConfig) handlerGetAllChrips(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		log.Printf("Error marshalling JSON: %s", err)
 		WriteErrorResponse(w, 500, "Something went wrong")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(dat)
+}
+
+func (cfg *apiConfig) handlerGetChirpByID(w http.ResponseWriter, r *http.Request) {
+	chirpIDstring := r.PathValue("chirpID")
+	fmt.Println(chirpIDstring)
+	chirpID, err := uuid.Parse(chirpIDstring)
+	if err != nil {
+		log.Printf("Error parsing UUID: %s", err)
+		WriteErrorResponse(w, 400, "Chirp ID is not valid UUID")
+		return
+	}
+
+	chirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		log.Printf("Chirp not found: %s", err)
+		WriteErrorResponse(w, 404, "Chirp not found")
+		return
+	}
+
+	chirpResp := ChirpResp{
+		ID:         chirp.ID,
+		Created_at: chirp.CreatedAt,
+		Updated_at: chirp.UpdatedAt,
+		Body:       chirp.Body,
+		User_id:    chirp.UserID,
+	}
+
+	dat, err := json.Marshal(chirpResp)
+	if err != nil {
+		log.Printf("Error marshalling JSON: %s", err)
+		WriteErrorResponse(w, 500, "Something went wrong")
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
