@@ -76,6 +76,8 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 	userIDstr := r.URL.Query().Get("author_id")
+	sortQuery := r.URL.Query().Get("sort")
+
 	if userIDstr != "" {
 		userID, err := uuid.Parse(userIDstr)
 		if err != nil {
@@ -83,12 +85,21 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 			WriteErrorResponse(w, 400, "Invalid UUID")
 			return
 		}
-
-		userChirps, err := cfg.db.GetChirpsFromUserID(r.Context(), userID)
-		if err != nil {
-			log.Printf("User does not exist: %s", err)
-			WriteErrorResponse(w, 404, "User not found or user has no chirps")
-			return
+		var userChirps []database.Chirp
+		if sortQuery == "desc" {
+			userChirps, err = cfg.db.GetChirpsFromUserIDDESC(r.Context(), userID)
+			if err != nil {
+				log.Printf("User does not exist: %s", err)
+				WriteErrorResponse(w, 404, "User not found or user has no chirps")
+				return
+			}
+		} else {
+			userChirps, err = cfg.db.GetChirpsFromUserIDASC(r.Context(), userID)
+			if err != nil {
+				log.Printf("User does not exist: %s", err)
+				WriteErrorResponse(w, 404, "User not found or user has no chirps")
+				return
+			}
 		}
 
 		var allChirpsJSON []ChirpResp
@@ -115,11 +126,22 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 		w.Write(dat)
 
 	} else {
-		allChirps, err := cfg.db.GetAllChirps(r.Context())
-		if err != nil {
-			log.Printf("Error getting all chirps: %s", err)
-			WriteErrorResponse(w, 500, "Error getting all chirps")
-			return
+		var err error
+		var allChirps []database.Chirp
+		if sortQuery == "desc" {
+			allChirps, err = cfg.db.GetAllChirpsDESC(r.Context())
+			if err != nil {
+				log.Printf("User does not exist: %s", err)
+				WriteErrorResponse(w, 404, "User not found or user has no chirps")
+				return
+			}
+		} else {
+			allChirps, err = cfg.db.GetAllChirpsASC(r.Context())
+			if err != nil {
+				log.Printf("User does not exist: %s", err)
+				WriteErrorResponse(w, 404, "User not found or user has no chirps")
+				return
+			}
 		}
 
 		var allChirpsJSON []ChirpResp
