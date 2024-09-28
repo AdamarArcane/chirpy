@@ -39,7 +39,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	response := User{
+	response := UserResp{
 		ID:         user.ID,
 		Created_at: user.CreatedAt,
 		Updated_at: user.UpdatedAt,
@@ -144,4 +144,66 @@ func (cfg *apiConfig) handlerResetUsers(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(200)
 		w.Write([]byte("Users database has been reset"))
 	}
+}
+
+func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		log.Printf("Error decoding parameters: %s", err)
+		WriteErrorResponse(w, 500, "Something went wrong")
+		return
+	}
+
+	accessToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("User header is malformed: %s", err)
+		WriteErrorResponse(w, 401, "Bearer <token> authentication token not found")
+		return
+	}
+
+	userID, err := auth.ValidateJWT(accessToken, cfg.JWT_SECRET)
+	if err != nil {
+		log.Printf("User token is invalid or expried")
+		WriteErrorResponse(w, 401, "Token is malformed or missing")
+		return
+	}
+
+	newHashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		log.Printf("Error hashing new user password: %s", err)
+		WriteErrorResponse(w, 500, "Error hashing new user password")
+		return
+	}
+
+	updateUser := database.UpdateUserEmailAndPasswordParams{
+		Email:          params.Email,
+		HashedPassword: newHashedPassword,
+		ID:             userID,
+	}
+
+	updatedUser, err := cfg.db.UpdateUserEmailAndPassword(r.Context(), updateUser)
+
+	resp := UserResp{
+		ID:         updatedUser.ID,
+		Created_at: updatedUser.CreatedAt,
+		Updated_at: updatedUser.UpdatedAt,
+		Email:      updatedUser.Email,
+	}
+
+	dat, err := json.Marshal(resp)
+	if err != nil {
+		log.Printf("Error marshalling JSON: %s", err)
+		WriteErrorResponse(w, 500, "Something went wrong")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(dat)
 }

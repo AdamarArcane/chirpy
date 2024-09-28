@@ -51,6 +51,7 @@ func main() {
 	mux.HandleFunc("GET /api/chirps", cfg.handlerGetAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.handlerGetChirpByID)
 	mux.HandleFunc("POST /api/users", cfg.handlerCreateUser)
+	mux.HandleFunc("PUT /api/users", cfg.handlerUpdateUser)
 	mux.HandleFunc("POST /api/login", cfg.handlerLoginUser)
 	mux.HandleFunc("POST /api/refresh", cfg.handlerRefreshJWT)
 	mux.HandleFunc("POST /api/revoke", cfg.handlerRevokeRFToken)
@@ -67,7 +68,7 @@ type apiConfig struct {
 	JWT_SECRET     string
 }
 
-type User struct {
+type UserResp struct {
 	ID         uuid.UUID `json:"id"`
 	Created_at time.Time `json:"created_at"`
 	Updated_at time.Time `json:"updated_at"`
