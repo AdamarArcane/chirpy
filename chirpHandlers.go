@@ -74,36 +74,77 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	w.Write(dat)
 }
 
-func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
-	allChirps, err := cfg.db.GetAllChirps(r.Context())
-	if err != nil {
-		log.Printf("Error getting all chirps: %s", err)
-		WriteErrorResponse(w, 500, "Error getting all chirps")
-		return
-	}
-
-	var allChirpsJSON []ChirpResp
-	for _, chirp := range allChirps {
-		respItem := ChirpResp{
-			ID:         chirp.ID,
-			Created_at: chirp.CreatedAt,
-			Updated_at: chirp.UpdatedAt,
-			Body:       chirp.Body,
-			User_id:    chirp.UserID,
+func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
+	userIDstr := r.URL.Query().Get("author_id")
+	if userIDstr != "" {
+		userID, err := uuid.Parse(userIDstr)
+		if err != nil {
+			log.Printf("Error parsing userID string: %s", err)
+			WriteErrorResponse(w, 400, "Invalid UUID")
+			return
 		}
-		allChirpsJSON = append(allChirpsJSON, respItem)
-	}
 
-	dat, err := json.Marshal(allChirpsJSON)
-	if err != nil {
-		log.Printf("Error marshalling JSON: %s", err)
-		WriteErrorResponse(w, 500, "Something went wrong")
-		return
-	}
+		userChirps, err := cfg.db.GetChirpsFromUserID(r.Context(), userID)
+		if err != nil {
+			log.Printf("User does not exist: %s", err)
+			WriteErrorResponse(w, 404, "User not found or user has no chirps")
+			return
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	w.Write(dat)
+		var allChirpsJSON []ChirpResp
+		for _, chirp := range userChirps {
+			respItem := ChirpResp{
+				ID:         chirp.ID,
+				Created_at: chirp.CreatedAt,
+				Updated_at: chirp.UpdatedAt,
+				Body:       chirp.Body,
+				User_id:    chirp.UserID,
+			}
+			allChirpsJSON = append(allChirpsJSON, respItem)
+		}
+
+		dat, err := json.Marshal(allChirpsJSON)
+		if err != nil {
+			log.Printf("Error marshalling JSON: %s", err)
+			WriteErrorResponse(w, 500, "Something went wrong")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		w.Write(dat)
+
+	} else {
+		allChirps, err := cfg.db.GetAllChirps(r.Context())
+		if err != nil {
+			log.Printf("Error getting all chirps: %s", err)
+			WriteErrorResponse(w, 500, "Error getting all chirps")
+			return
+		}
+
+		var allChirpsJSON []ChirpResp
+		for _, chirp := range allChirps {
+			respItem := ChirpResp{
+				ID:         chirp.ID,
+				Created_at: chirp.CreatedAt,
+				Updated_at: chirp.UpdatedAt,
+				Body:       chirp.Body,
+				User_id:    chirp.UserID,
+			}
+			allChirpsJSON = append(allChirpsJSON, respItem)
+		}
+
+		dat, err := json.Marshal(allChirpsJSON)
+		if err != nil {
+			log.Printf("Error marshalling JSON: %s", err)
+			WriteErrorResponse(w, 500, "Something went wrong")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		w.Write(dat)
+	}
 }
 
 func (cfg *apiConfig) handlerGetChirpByID(w http.ResponseWriter, r *http.Request) {
