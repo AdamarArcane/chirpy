@@ -142,3 +142,51 @@ func (cfg *apiConfig) handlerGetChirpByID(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(200)
 	w.Write(dat)
 }
+
+func (cfg *apiConfig) handlerDeleteChirpByID(w http.ResponseWriter, r *http.Request) {
+	accessToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("User header is malformed: %s", err)
+		WriteErrorResponse(w, 401, "Bearer <token> authentication token not found")
+		return
+	}
+
+	userID, err := auth.ValidateJWT(accessToken, cfg.JWT_SECRET)
+	if err != nil {
+		log.Printf("User token is invalid or expried")
+		WriteErrorResponse(w, 403, "Token is malformed or missing")
+		return
+	}
+
+	chirpIDstring := r.PathValue("chirpID")
+	fmt.Println(chirpIDstring)
+	chirpID, err := uuid.Parse(chirpIDstring)
+	if err != nil {
+		log.Printf("Error parsing UUID: %s", err)
+		WriteErrorResponse(w, 400, "Chirp ID is not valid UUID")
+		return
+	}
+
+	chirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		log.Printf("Chirp not found: %s", err)
+		WriteErrorResponse(w, 404, "Chirp not found")
+		return
+	}
+
+	if chirp.UserID != userID {
+		log.Printf("Chirp UserID and UserID do not match: %s", err)
+		WriteErrorResponse(w, 403, "You may not delete chirps that are not yours")
+		return
+	}
+
+	err = cfg.db.DeleteChirpByID(r.Context(), chirpID)
+	if err != nil {
+		log.Printf("Error deleteing chirp from DB: %s", err)
+		WriteErrorResponse(w, 500, "Error deleting chirp from database")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(204)
+}
