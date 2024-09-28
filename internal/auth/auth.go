@@ -99,3 +99,15 @@ func GetBearerToken(headers http.Header) (string, error) {
 
 	return token, nil
 }
+
+func GetApiKey(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+
+	if !strings.HasPrefix(authHeader, "ApiKey ") {
+		return "", fmt.Errorf("header does not have correct prefix")
+	}
+
+	apikey := strings.TrimPrefix(authHeader, "ApiKey ")
+
+	return apikey, nil
+}

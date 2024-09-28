@@ -24,6 +24,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	PLATFORM_TYPE := os.Getenv("PLATFORM")
 	JWTSecret := os.Getenv("JWT_SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Printf("Error opening db: %s", err)
@@ -37,6 +38,7 @@ func main() {
 		db:             dbQueries,
 		PLATFORM:       PLATFORM_TYPE,
 		JWT_SECRET:     JWTSecret,
+		POLKA_KEY:      polkaKey,
 	}
 
 	fileServerHandler := http.FileServer(http.Dir("."))
@@ -68,6 +70,7 @@ type apiConfig struct {
 	db             *database.Queries
 	PLATFORM       string
 	JWT_SECRET     string
+	POLKA_KEY      string
 }
 
 type UserResp struct {

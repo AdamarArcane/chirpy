@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/adamararcane/chirpy/internal/auth"
 	"github.com/google/uuid"
 )
 
@@ -22,6 +23,19 @@ func (cfg *apiConfig) handlerPolkaUpgrade(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
 		WriteErrorResponse(w, 500, "Something went wrong")
+		return
+	}
+
+	apikey, err := auth.GetApiKey(r.Header)
+	if err != nil {
+		log.Printf("User header is malformed: %s", err)
+		WriteErrorResponse(w, 401, "ApiKey <token> apikey not found")
+		return
+	}
+
+	if apikey != cfg.POLKA_KEY {
+		log.Printf("ApiKey does not match")
+		WriteErrorResponse(w, 401, "Invalid API Key")
 		return
 	}
 
