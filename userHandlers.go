@@ -40,10 +40,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	response := UserResp{
-		ID:         user.ID,
-		Created_at: user.CreatedAt,
-		Updated_at: user.UpdatedAt,
-		Email:      user.Email,
+		ID:            user.ID,
+		Created_at:    user.CreatedAt,
+		Updated_at:    user.UpdatedAt,
+		Email:         user.Email,
+		Is_chirpy_red: user.IsChirpyRed,
 	}
 
 	dat, err := json.Marshal(response)
@@ -112,6 +113,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		Created_at:    user.CreatedAt,
 		Updated_at:    user.UpdatedAt,
 		Email:         user.Email,
+		Is_chirpy_red: user.IsChirpyRed,
 		Token:         token,
 		Refresh_token: rfTokenItem.Token,
 	}
@@ -191,10 +193,11 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 	updatedUser, err := cfg.db.UpdateUserEmailAndPassword(r.Context(), updateUser)
 
 	resp := UserResp{
-		ID:         updatedUser.ID,
-		Created_at: updatedUser.CreatedAt,
-		Updated_at: updatedUser.UpdatedAt,
-		Email:      updatedUser.Email,
+		ID:            updatedUser.ID,
+		Created_at:    updatedUser.CreatedAt,
+		Updated_at:    updatedUser.UpdatedAt,
+		Email:         updatedUser.Email,
+		Is_chirpy_red: updatedUser.IsChirpyRed,
 	}
 
 	dat, err := json.Marshal(resp)

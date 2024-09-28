@@ -56,6 +56,7 @@ func main() {
 	mux.HandleFunc("POST /api/login", cfg.handlerLoginUser)
 	mux.HandleFunc("POST /api/refresh", cfg.handlerRefreshJWT)
 	mux.HandleFunc("POST /api/revoke", cfg.handlerRevokeRFToken)
+	mux.HandleFunc("POST /api/polka/webhooks", cfg.handlerPolkaUpgrade)
 
 	server.ListenAndServe()
 }
@@ -70,10 +71,11 @@ type apiConfig struct {
 }
 
 type UserResp struct {
-	ID         uuid.UUID `json:"id"`
-	Created_at time.Time `json:"created_at"`
-	Updated_at time.Time `json:"updated_at"`
-	Email      string    `json:"email"`
+	ID            uuid.UUID `json:"id"`
+	Created_at    time.Time `json:"created_at"`
+	Updated_at    time.Time `json:"updated_at"`
+	Email         string    `json:"email"`
+	Is_chirpy_red bool      `json:"is_chirpy_red"`
 }
 
 type UserWithToken struct {
@@ -83,6 +85,7 @@ type UserWithToken struct {
 	Email         string    `json:"email"`
 	Token         string    `json:"token"`
 	Refresh_token string    `json:"refresh_token"`
+	Is_chirpy_red bool      `json:"is_chirpy_red"`
 }
 
 type ChirpResp struct {
